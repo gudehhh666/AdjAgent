@@ -1,0 +1,56 @@
+#!/bin/sh
+# Bootstrap this source checkout. Never load private configuration or call a model.
+set -eu
+adj_script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+adj_root=$(CDPATH= cd -- "$adj_script_dir/.." && pwd)
+adj_python=python3.12
+adj_install=1
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --help|-h)
+            printf '%s\n' 'Usage: scripts/setup [--python /path/to/python3.12] [--no-install]' \
+                'Creates checkout .venv and a private empty .einwang_env (linked as .env) without overwriting existing files.' \
+                '--no-install creates the environment only; install requirements-harness.txt before running.'
+            exit 0 ;;
+        --python)
+            [ "$#" -ge 2 ] || { printf '%s\n' '--python requires an interpreter path' >&2; exit 2; }
+            adj_python=$2; shift 2 ;;
+        --no-install) adj_install=0; shift ;;
+        *) printf '%s\n' 'Unknown setup argument; use --help.' >&2; exit 2 ;;
+    esac
+done
+if ! "$adj_python" -I -c 'import sys; raise SystemExit(sys.version_info[:2] != (3,12))'; then
+    printf '%s\n' 'Python 3.12 is required; pass --python /path/to/python3.12.' >&2
+    exit 2
+fi
+if [ -e "$adj_root/.venv" ] || [ -L "$adj_root/.venv" ]; then
+    if [ -L "$adj_root/.venv" ] || [ ! -f "$adj_root/.venv/pyvenv.cfg" ] || [ ! -x "$adj_root/.venv/bin/python" ]; then
+        printf '%s\n' 'Refusing to change existing .venv: not a local Python environment.' >&2
+        exit 2
+    fi
+else
+    "$adj_python" -I -m venv "$adj_root/.venv"
+fi
+"$adj_root/.venv/bin/python" -I -c 'import sys; raise SystemExit(sys.version_info[:2] != (3,12))' || {
+    printf '%s\n' 'The existing .venv must use Python 3.12; it was not replaced.' >&2
+    exit 2
+}
+if [ "$adj_install" -eq 1 ]; then
+    "$adj_root/.venv/bin/python" -I -m pip install -r "$adj_root/requirements-harness.txt" -c "$adj_root/requirements-lock.txt"
+    "$adj_root/.venv/bin/python" -I -m pip check
+fi
+# The private key file is .einwang_env; .env is a hard link to it for scripts that name .env.
+# noclobber also protects a concurrently created file; never source its contents.
+if [ ! -e "$adj_root/.einwang_env" ] && [ ! -L "$adj_root/.einwang_env" ]; then
+    if [ -f "$adj_root/.env" ] && [ ! -L "$adj_root/.env" ]; then
+        ln "$adj_root/.env" "$adj_root/.einwang_env"
+    else
+        (umask 077; set -C; sed -n 'p' "$adj_root/.env.example" > "$adj_root/.einwang_env")
+    fi
+fi
+if [ ! -e "$adj_root/.env" ] && [ ! -L "$adj_root/.env" ] && [ -f "$adj_root/.einwang_env" ]; then
+    ln "$adj_root/.einwang_env" "$adj_root/.env"
+fi
+printf '%s\n' 'Setup finished. Private .einwang_env was preserved or created with empty provider values (.env links to it).' \
+    'Offline TUI (after dependency installation): scripts/adj --offline-demo tui' \
+    'Live TUI: fill in .einwang_env locally, then scripts/adj tui'

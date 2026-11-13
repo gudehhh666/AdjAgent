@@ -1,0 +1,41 @@
+# Retrieval source toggles and rate limits.
+literature:
+  pubmed:
+    enabled: true
+    base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+    rate_limit_per_sec: 3        # 10 with an NCBI API key
+  europe_pmc:
+    enabled: true
+    base_url: https://www.ebi.ac.uk/europepmc/webservices/rest
+  semantic_scholar:
+    enabled: true
+    base_url: https://api.semanticscholar.org/graph/v1
+  arxiv:
+    enabled: true
+    base_url: http://export.arxiv.org/api
+
+biodb:
+  uniprot:
+    enabled: true
+    base_url: https://rest.uniprot.org
+  kegg:
+    enabled: true
+    base_url: https://rest.kegg.jp
+  reactome:
+    enabled: true
+    base_url: https://reactome.org/ContentService
+  chembl:
+    enabled: true
+    base_url: https://www.ebi.ac.uk/chembl/api/data
+
+web_search:
+  enabled: true                  # optional credentials configured locally
+  provider_env: ADJ_WEB_SEARCH_PROVIDER
+  api_key_env: ADJ_WEB_SEARCH_API_KEY
+  max_results: 5
+
+local_corpus:
+  enabled: true
+  index_path: environment/corpus_index/corpus.db
+  pdf_dirs:
+    - data/papers

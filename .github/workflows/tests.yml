@@ -1,0 +1,26 @@
+name: Offline tests and publication checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements-harness.txt
+            requirements-lock.txt
+      - name: Install checkout dependencies (no private configuration)
+        run: scripts/setup --python python3.12
+      - name: Check all reachable Git history
+        run: .venv/bin/python scripts/check-publication.py --all-history
+      - name: Run offline unit and integration tests
+        run: .venv/bin/python -m pytest -q

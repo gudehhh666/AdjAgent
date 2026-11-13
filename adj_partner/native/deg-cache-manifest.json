@@ -1,0 +1,147 @@
+[
+  {
+    "name": "000_Young_ACTVSOld_ACT.parquet",
+    "sha256": "41c6497b0f7e60c6ca27eb61ef1d48227cdf439408a8e38b1d68351c76444bf4",
+    "size": 1814715
+  },
+  {
+    "name": "001_DMSOVSOld_ACT.parquet",
+    "sha256": "7b9dd412b650fd19e6143569d63993a897a7f970f090a9ada8b1ae7839283ba0",
+    "size": 1864274
+  },
+  {
+    "name": "AminosalicylicVSDMSO.parquet",
+    "sha256": "910457e6316749b806d6b7dd2455df81d24a7f4dcfe5d240ee47e80b36e9c3d3",
+    "size": 1851509
+  },
+  {
+    "name": "AtracuriumVSDMSO.parquet",
+    "sha256": "3cc9e602003eb9357b88074f5c7f6a4ac1e42ca44c251d1613a63511c2852048",
+    "size": 1878065
+  },
+  {
+    "name": "BetaineVSDMSO.parquet",
+    "sha256": "03dae2ad77ea2f7a5692277b9793d764fcaaa3e247edb97c90a8bdeaecfd3e6b",
+    "size": 1867835
+  },
+  {
+    "name": "BisoprololVSDMSO.parquet",
+    "sha256": "e4f6bacb2c8f7e4e8a3ec34bc7ad0622097437695ce8f6abee3329907dcd2e8a",
+    "size": 1865088
+  },
+  {
+    "name": "CapsaicinVSDMSO.parquet",
+    "sha256": "89cd75d52d6fcdc19fc44ab7de43df317b7c727aa2205a4d4278e4dea8069aa2",
+    "size": 1869002
+  },
+  {
+    "name": "DelafloxacinVSDMSO.parquet",
+    "sha256": "f35b036dc8e38abd33f57dca54f1530073a3c0d0319c0fef11342668c8e37b50",
+    "size": 1872857
+  },
+  {
+    "name": "DexamethasoneVSDMSO.parquet",
+    "sha256": "bf78197543ba91911fa40a577c46a04f0077786b1717d75d631f1aa618e363e8",
+    "size": 1865952
+  },
+  {
+    "name": "EncorafenibVSDMSO.parquet",
+    "sha256": "8ef69d3432548d48aa632a5c2c2eb06ba4066ec7fa97a7d9e1c80b6111486eb0",
+    "size": 1880906
+  },
+  {
+    "name": "EntacaponeVSDMSO.parquet",
+    "sha256": "8b51eb9d5043559358922d0a6359793675e0e9f7e4e21b50628344c8de93ab4d",
+    "size": 1882156
+  },
+  {
+    "name": "EstradiolVSDMSO.parquet",
+    "sha256": "290500ab04afb8c39e598785ddabcf21d89f438f5859b9f87386bee53c996f49",
+    "size": 1881960
+  },
+  {
+    "name": "EzetimibeVSDMSO.parquet",
+    "sha256": "70753237c881cc018dc19637c458b24e04cd2430b66a3042700fcaa7808cf1ca",
+    "size": 1871950
+  },
+  {
+    "name": "FlunarizineVSDMSO.parquet",
+    "sha256": "08f49ff87215bbf368df9ed9afd43e88280ac01a3a300cd0c72470a4446f8339",
+    "size": 1882094
+  },
+  {
+    "name": "GemcitabineVSDMSO.parquet",
+    "sha256": "2a75fe338b4371c0e84ff1bc7018bb3f3092a277e4264d0778d992a9e70369bf",
+    "size": 1913964
+  },
+  {
+    "name": "GlycyrrhizicVSDMSO.parquet",
+    "sha256": "50aea1f16a11a06b69bccaf04f240d919661b14f98f305e80cb5bf9f3d98f47a",
+    "size": 1861874
+  },
+  {
+    "name": "ItraconazoleVSDMSO.parquet",
+    "sha256": "de4295b2f1c9ea646ab2f65047ac15c267044578fc012fd6ab30b3fb24e6588e",
+    "size": 1885037
+  },
+  {
+    "name": "MetforminVSDMSO.parquet",
+    "sha256": "34d215038e5419a180187a56e49cdfd0cac216f9c80948792d0067c4aa3fc06b",
+    "size": 1860149
+  },
+  {
+    "name": "NifedipineVSDMSO.parquet",
+    "sha256": "2d3c891d2691a9e084bc77f8f1d66a22564fc78153e990630dc63647c5c16759",
+    "size": 1880295
+  },
+  {
+    "name": "NorgestrelVSDMSO.parquet",
+    "sha256": "9dc4f2aa4c916deb93b38187e9fce1556999658aeb67fb4efe1576f16809b375",
+    "size": 1884517
+  },
+  {
+    "name": "PerindoprilVSDMSO.parquet",
+    "sha256": "bf206c57019a80e1837a7b455d57fdd94c078c5fbe93d4dbdeacb537ea70e018",
+    "size": 1869278
+  },
+  {
+    "name": "RapamycinVSDMSO.parquet",
+    "sha256": "37163e36d2c8550132200e30d87ff69fede75b3e42a428c85950fb8245b0bc08",
+    "size": 1874452
+  },
+  {
+    "name": "SaxagliptinVSDMSO.parquet",
+    "sha256": "e4b47392a1c459cb327fd6e6dbb994fb81ac9647f1c0f7bab3a299869911437f",
+    "size": 1867813
+  },
+  {
+    "name": "SulfadiazineVSDMSO.parquet",
+    "sha256": "f9a223788930b17847bb0e6bc627df2624978b8d4711cac5d75cded0d0d537dc",
+    "size": 1866133
+  },
+  {
+    "name": "ThioridazineVSDMSO.parquet",
+    "sha256": "db935fea1f2b6d45ba652df8f5cb48a378b848f0b60eb2b9a639ab52b8aa5534",
+    "size": 1873698
+  },
+  {
+    "name": "VilanterolVSDMSO.parquet",
+    "sha256": "818b6c825bc9a1d76ecac98122c3ca0f47028957b1b5f3047ed27d219f0b19a6",
+    "size": 1871871
+  },
+  {
+    "name": "ZincgluconateVSDMSO.parquet",
+    "sha256": "17317c220fd3ed22b61fc763258c8b5ad09e8d1b9622a1805c24bd787b864042",
+    "size": 1875511
+  },
+  {
+    "name": "ZolmitriptanVSDMSO.parquet",
+    "sha256": "7dc9c23cec3de9d889544e31106f4efd27acea34e149b4b4a8862850e6ec2927",
+    "size": 1855331
+  },
+  {
+    "name": "_annotation.parquet",
+    "sha256": "3bf2f0a9710c249c9282c2a40282622521070efd70acb9f0783d6ffba87404fd",
+    "size": 7907343
+  }
+]

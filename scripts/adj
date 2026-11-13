@@ -1,0 +1,11 @@
+#!/bin/sh
+# Explicit source-checkout mode; no standalone wheel or embedded Codex claim.
+set -eu
+adj_launcher_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+adj_project_root=$(CDPATH= cd -- "$adj_launcher_dir/.." && pwd)
+adj_python=${ADJ_PARTNER_PYTHON:-"$adj_project_root/.venv/bin/python"}
+if ! command -v "$adj_python" >/dev/null 2>&1; then
+    printf '%s\n' 'Python environment missing. Run scripts/setup --python /path/to/python3.12 or set ADJ_PARTNER_PYTHON.' >&2
+    exit 2
+fi
+exec "$adj_python" -I -c 'import sys; sys.path.insert(0,sys.argv.pop(1)); from adj_partner.entry import main; raise SystemExit(main())' "$adj_project_root" "$@"

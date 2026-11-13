@@ -1,0 +1,5 @@
+---
+name: research-molecules
+description: Optional host guide for a requested multi-molecule dossier.
+---
+For a full multi-molecule discovery delivery, use one independently readable file per molecule and a short navigation index. Every file needs its own local observations, dose recommendation, experiment comparisons/readouts, continue/stop/inconclusive rules and source gaps. Dose recommendations must distinguish verified reference concentrations from new pilot choices and missing historical doses. If chemical identity or a dose anchor is unresolved, explain the concrete calibration route instead of inventing an absolute concentration. The host production entry is adj-partner molecule-reports --bundle FROZEN_BUNDLE --output DIRECTORY; its input preparation and verification are available through python -m adj_partner.molecule_reports. Do not claim files were created or a batch was run without actual artifact receipts. Ordinary QA and single-fact answers do not require a molecule dossier.

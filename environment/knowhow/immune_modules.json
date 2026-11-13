@@ -1,0 +1,25 @@
+{
+  "SCORING_VERSION_REF": "adjuvant_scoring 1.0.0",
+  "modules": {
+    "Type_I_IFN": {
+      "keywords": ["Oas1*", "Oas2", "Oas3", "Oasl", "Mx1", "Mx2", "Ifit*", "Isg15", "Isg20", "Cxcl10", "Irf7", "Stat1", "Stat2", "Ddx58", "Ifih1", "Tlr3", "Tlr7", "Tlr8", "Tmem173", "Ifnar1", "Ifnar2"],
+      "desc": "Antiviral / interferon module: PRRs, signal transduction, ISG effectors."
+    },
+    "Type_II_NFkB": {
+      "keywords": ["Nfkb1", "Rela", "Relb", "Nfkbia", "Tnf", "Il6", "Il1a", "Il1b", "Ccl2", "Ccl3", "Ccl4", "Ccl5", "Cxcl1", "Cxcl2", "Cxcl3", "Tlr2", "Tlr4", "Cd14", "Myd88", "Tradd", "Traf6", "Map3k7", "Ptgs2"],
+      "desc": "Antibacterial / classical inflammation module: NF-kB pathway and TLR2/4 signaling."
+    },
+    "Type_III_NLRP3": {
+      "keywords": ["Cias1", "Pycard", "Casp1", "Il1b", "Il18", "Nlrc4", "Aim2", "Gsdmd", "Txnip", "Nod2"],
+      "desc": "Inflammasome activation and pyroptosis module: NLRP3(Cias1)-ASC-Caspase-1 axis."
+    },
+    "Type_IV_Stress": {
+      "keywords": ["Hspa5", "Hsp90b1", "Xbp1", "Ern1", "Eif2ak3", "Atf4", "Ddit3", "Atf6", "Herpud1", "Dnajb9", "Hyou1", "Srebf1", "Srebf2", "Hspa1a", "Hspa1b"],
+      "desc": "ER stress (ERS) and unfolded protein response (UPR) module."
+    },
+    "Toxicity_Death": {
+      "keywords": ["Havcr1", "Gadd45a", "Gadd45b", "Gadd45g", "Casp3", "Casp8", "Casp12", "Bax", "Bcl2", "Bcl2l1", "Trp53", "Nqo1", "Hmox1", "Lcn2", "S100a8", "S100a9", "Mmp9", "Timp1", "Sod1", "Sod2"],
+      "desc": "Cell death and toxic stress module: used to assess side effects."
+    }
+  }
+}

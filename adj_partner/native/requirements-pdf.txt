@@ -1,0 +1,14 @@
+# Optional PDF worker, separate from the harness lock. Tested on Apple Silicon.
+# Create the project-private companion from the repository root with micromamba:
+#   micromamba create -y -p "$PWD/.runtime/pdf-ocr/companion" -c conda-forge python=3.12 pdfplumber=0.11.10 pypdfium2=5.13.0 ocrmypdf=17.13.0 pypdf=6.21.4 tesseract=5.5.3
+#   ln -s ../.runtime/pdf-ocr/companion .venv/pdf-tools
+#   for cli in pdfplumber ocrmypdf tesseract; do ln -s "../pdf-tools/bin/$cli" ".venv/bin/$cli"; done
+#   source .venv/bin/activate
+# document_read discovers the companion from sys.prefix/pdf-tools/bin/python.
+# Alternative pip setup with a host Tesseract CLI and English language data:
+#   .venv/bin/python -m venv .venv/pdf-tools
+#   .venv/pdf-tools/bin/python -m pip install -r adj_partner/native/requirements-pdf.txt
+pdfplumber==0.11.10
+pypdfium2==5.13.0
+ocrmypdf==17.13.0
+pypdf==6.21.4

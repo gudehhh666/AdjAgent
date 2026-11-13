@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "AdjAgent: an evidence-grounded agent harness for vaccine adjuvant research"
+type: software
+authors:
+  - family-names: Wang
+    given-names: Xinming
+  - family-names: Chen
+    given-names: Yi
+version: release-v0.1
+date-released: 2026-11-13
+license: Apache-2.0
+repository-code: "https://github.com/gudehhh666/AdjAgent"
+abstract: >-
+  AdjAgent is an agent harness for vaccine adjuvant research that separates
+  decision from verification. One host service and one agent loop share a tool
+  catalog; the host creates every source, binds claims to retrieved passages,
+  gates citations and ranks experiments, while the model plans and writes. The
+  harness integrates typed resource packs, a local literature library and
+  sandboxed computation; binds answers and reports to evidence; and compares
+  competing mechanism hypotheses as a graph with edge-level citation gating and
+  value-per-cost experiment ranking.
+keywords:
+  - scientific agents
+  - large language models
+  - retrieval-augmented generation
+  - citation verification
+  - vaccine adjuvants

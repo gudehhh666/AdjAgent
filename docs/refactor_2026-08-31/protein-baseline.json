@@ -1,0 +1,17 @@
+{
+  "check_type": "direct_library_baseline_not_harness_evaluation",
+  "library": "Bio.SeqUtils.ProtParam.ProteinAnalysis",
+  "biopython_version": "1.88",
+  "sequence": "MKWVTFISLLFLFSSAYS",
+  "length": 18,
+  "composition": {"A": 1, "C": 0, "D": 0, "E": 0, "F": 3, "G": 0, "H": 0, "I": 1, "K": 1, "L": 3, "M": 1, "N": 0, "P": 0, "Q": 0, "R": 0, "S": 4, "T": 1, "V": 1, "W": 1, "Y": 1},
+  "molecular_weight_da": 2140.5405,
+  "theoretical_isoelectric_point": 8.344739341735842,
+  "gravy": 1.2333333333333334,
+  "aromaticity": 0.2777777777777778,
+  "limitations": [
+    "Theoretical sequence-derived properties, not experimental measurements",
+    "No post-translational modifications or nonstandard residues modeled",
+    "No structure, biological function, affinity or efficacy inferred"
+  ]
+}
