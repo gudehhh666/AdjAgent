@@ -1,0 +1,28 @@
+# Global runtime settings.
+workspace_root: workspace
+knowhow_dir: environment/knowhow
+
+data_lake:
+  otg_dataset: data/open-tggates/data/Adjuvant_Discovery_Dataset.csv
+  otg_dataset_small:            # small toxygates exports for dev/testing
+    - data/raw/ADJ/toxygates-2026-6-24-2040.csv
+    - data/raw/ADJ/toxygates-2026-6-24-4044.csv
+  gene_mapping: data/open-tggates/data/gene_mapping.json
+  # 26 compounds vs a shared DMSO control in aged mouse splenocytes (n=1 per group)
+  gene_diff_dir: data/gene_diff
+
+orchestration:
+  max_parallel_specialists: 5
+  effort:
+    simple_max_tool_calls: 10
+    discovery_max_specialists: 5
+
+specialist_budget:
+  max_steps: 12
+  max_tokens_in: 60000
+  max_tokens_out: 8000
+  wall_clock_sec: 300
+
+code_runner:
+  timeout_sec: 60
+  memory_limit_mb: 4096

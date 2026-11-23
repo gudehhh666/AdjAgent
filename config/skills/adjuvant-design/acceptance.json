@@ -1,0 +1,20 @@
+{
+  "require_report": true,
+  "require_evidence": true,
+  "require_limitations": true,
+  "min_distinct_sources": 5,
+  "min_distinct_evidence": 8,
+  "report_layout": "review",
+  "required_sections": [
+    "决策摘要",
+    "设计目标与约束",
+    "候选方案与选择依据",
+    "推荐配方与制剂可行性",
+    "免疫预期与机制证据",
+    "验证设计与决策标准",
+    "风险、局限与转化边界",
+    "评审结论与待解决问题"
+  ],
+  "require_research_design": true,
+  "require_literal_observations": true
+}

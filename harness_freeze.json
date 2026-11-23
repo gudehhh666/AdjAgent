@@ -1,0 +1,544 @@
+{
+  "release": "release-v0.2",
+  "frozen_at": "2026-11-13",
+  "contents": "code only; results, evaluation sets, gold answers and resource packs are not included",
+  "rule": "Slots change only through the replacement protocol below. Code and host-file drift is detected by `scripts/harness_freeze.py verify`.",
+  "pillars": {
+    "count": 3,
+    "P1": "Experience integration: typed resource packs (14 datasets, 12,530 records), a local literature library and sandboxed computation.",
+    "P2": "Evidence-bound reasoning: source -> evidence -> claim -> report with host citation gating.",
+    "P3": "Mechanism graphs: competing hypotheses, an edge-level citation gate, value/cost ranking and the wet/dry feedback loop.",
+    "feedback_loop": "Cross-cutting, not a separate pillar: P1 draft -> compute -> verify -> revise; P2 draft -> retrieve -> revise or keep -> anchor self-check; P3 rank -> readout -> graph propagation and pruning -> replan."
+  },
+  "shared": {
+    "solver_model": "gpt-5.6-luna",
+    "endpoint": "OpenAI-compatible endpoint from ADJ_LLM_BASE_URL",
+    "web_search_chain": "ADJ_WEB_SEARCH_PROVIDER=serper_gateway,serper,mwmbl",
+    "page_reader": "ADJ_WEB_PAGE_READER=jina_gateway",
+    "pubmed": "ADJ_NCBI_API_KEY + ADJ_NCBI_EMAIL, timeout 45 s, one retry; on second failure fall back to Serper gateway",
+    "judges": {
+      "judge": "gpt-4o-2024-11-20",
+      "forbidden": "gpt-4o-mini no longer used for new results; gpt-5.6-* and gpt-6-* never judge (same family as the solver)"
+    },
+    "token_cap": 400000000,
+    "evaluation": "same-question paired difference (harness - direct), question-level bootstrap 95% CI, win/tie/loss, tokens per arm",
+    "isolation": "harness file tools refuse evaluation sets and references.judge_only.json (adj_partner/tools/policy.py)"
+  },
+  "forms": {
+    "F0-direct": {
+      "summary": "Bare model, no tools, one call",
+      "pipelines": {
+        "direct": {
+          "module": "adj_partner.pipelines.direct",
+          "kind": "direct",
+          "spec_sha256": "b50f50d0d0ed2e693e369686d9a0c0fef5a4e821113965debd6e94b9e67b8347"
+        }
+      }
+    },
+    "F1-qa-grounded": {
+      "summary": "Draft-anchored revision: fresh direct draft -> model decides if a specific study is asked and writes queries -> host retrieves PubMed/PMC passages (Serper+Jina fallback, BM25 top 8) -> REVISE or KEEP_DRAFT; host reverts a revision that opens with abstention",
+      "limits": {
+        "solver_output_tokens": 1600
+      },
+      "workflow": "qa-grounded-revision-v1 in the registry (now frozen); round-5 eval script variant",
+      "pipelines": {},
+      "status": "superseded by F1b; registry workflow qa-grounded-revision-v1 is frozen"
+    },
+    "F2-evidence-bound-agent": {
+      "summary": "Single AgentService session over typed resource packs and local library",
+      "profile": "research-evidence-bound",
+      "budget": {
+        "max_steps": 10,
+        "max_input_tokens": 100000,
+        "max_output_tokens": 8192,
+        "wall_time_seconds": 240,
+        "request_output_tokens": 4096
+      },
+      "pipelines": {
+        "evidence-bound-v3": {
+          "module": "adj_partner.pipelines.evidence_bound",
+          "kind": "session",
+          "spec_sha256": "b95fdd06eedc9a8357acda1e2debf89f3b1e05dd78d3f0c993a5a44489500036"
+        }
+      }
+    },
+    "F3-research-report-agent": {
+      "summary": "Tool-free draft, then evidence-first agent session (web_search via gateway, web_page_read via Jina, evidence_read), answer-preserving delivery fallbacks",
+      "profile": "research-evidence-first",
+      "budget": {
+        "max_steps": 16,
+        "max_input_tokens": 150000,
+        "max_output_tokens": 16000,
+        "wall_time_seconds": 900,
+        "request_output_tokens": 3200
+      },
+      "pipelines": {
+        "research-report": {
+          "module": "adj_partner.pipelines.research_report",
+          "kind": "session",
+          "spec_sha256": "aeaf38a757ea660a9b5d4a7bcefe22a0325b06c61f632092878f8d2db8bf291b"
+        }
+      }
+    },
+    "F4-quality-agent": {
+      "summary": "F3 runner with a short-answer format (<=1200 Chinese characters) and claim/report tools excluded",
+      "profile": "research-evidence-first",
+      "budget": {
+        "max_steps": 12,
+        "max_input_tokens": 80000,
+        "max_output_tokens": 12000,
+        "wall_time_seconds": 480
+      },
+      "pipelines": {
+        "research-report-quality": {
+          "module": "adj_partner.pipelines.research_report",
+          "kind": "session",
+          "spec_sha256": "72f77774c8cff24bc274376a539b80a12f78434bab8bdb90f8ffa74fdc92bf65"
+        }
+      }
+    },
+    "F5-synth-execution": {
+      "summary": "Arms direct / profile_only / harness; harness executes code in the analysis sandbox for computation items",
+      "repeats": {
+        "decision": 3,
+        "computation": 2
+      },
+      "pipelines": {
+        "synth-execution": {
+          "module": "adj_partner.pipelines.synth",
+          "kind": "session",
+          "spec_sha256": "103ee1dd2e9f4fbfc088252eecbc65b3e6b49cd6ea993b496e4530546903ecf5"
+        }
+      }
+    },
+    "F6-plga-controlled": {
+      "summary": "Frozen OPTIONS prompt + v2 mechanism-keyword guidance in session instructions; controlled reproduction, not a blind hit",
+      "profile": "research-evidence-bound",
+      "budget": {
+        "max_steps": 16,
+        "max_input_tokens": 150000,
+        "max_output_tokens": 16000,
+        "wall_time_seconds": 900
+      },
+      "hashes": {
+        "prompt": "b980c5d4fc7674d79556a4dbb6c5056985f20d6b36d4c18d6cec8900ce31a7e7",
+        "guidance_v2": "31f5fdee4fc3cf38f13c1cb3fddf6a2a635194b16911d55417e35fb356faca8e"
+      },
+      "pipelines": {
+        "guided-evidence-bound": {
+          "module": "adj_partner.pipelines.guided",
+          "kind": "session",
+          "spec_sha256": "5be414be3aae93c65db473aa6eacf43cce0ec54e4f4b323498278e2d7a748343"
+        }
+      }
+    },
+    "F7-mechanism-graph": {
+      "summary": "Registered controller workflows: v2 = competing-path DAG with host-retrieved, citation-gated edge status; v3 = v2 + on/off-path prediction matrix, expected-eliminations-per-cost ranking, feedback propagation",
+      "workflows": [
+        "unified-mechanism-graph-v2",
+        "unified-mechanism-graph-v3"
+      ],
+      "session": "experimental (critic and report review are skipped; host gates only)",
+      "pipelines": {
+        "mechanism-graph-v2-grounding": {
+          "module": "adj_partner.pipelines.mechanism",
+          "kind": "host",
+          "spec_sha256": "2510bbaf3e9110484ca57dd5f99207829b7a112e36081c1632681c44354da5a4"
+        },
+        "mechanism-graph-v3-planning": {
+          "module": "adj_partner.pipelines.mechanism",
+          "kind": "host",
+          "spec_sha256": "0ec9c8ad17396dbdc065f18720de1f1331906e5a4aafeb2edd7f23e8e23e20eb"
+        }
+      }
+    },
+    "F1b-qa-grounded-v2": {
+      "summary": "Independent tool-free baseline -> model decides if a specific study is asked and writes queries -> host retrieves PubMed/PMC full text + Google Scholar/web hits (Serper gateway, up to 6 pages read via Jina, benchmark-mirror hosts blocked), one BM25 pool ranked by question x2 + queries + draft, top 12 -> REVISE or KEEP_DRAFT -> one anchor self-check rewrite (entity, endpoint, comparator, mechanism, conclusion; no new numbers or citations) of whichever answer would be delivered; abstaining or failed rewrites deliver the prior answer",
+      "limits": {
+        "baseline_output_tokens": 2400,
+        "revise_output_tokens": 2400,
+        "reflect_output_tokens": 2400,
+        "k_pages": 6,
+        "k_passages": 12
+      },
+      "workflow": "qa-grounded-revision-v2 (adj_partner/orchestration/registry.py, active)",
+      "pipelines": {
+        "qa-grounded-revision-v2": {
+          "kind": "controller",
+          "spec_sha256": "e8acf2307457a039f79e4297cd8ba9898e287ecc3aedd94620b33748a9b75139",
+          "workflow": "qa-grounded-revision-v2"
+        }
+      }
+    }
+  },
+  "slots": [
+    {
+      "task": "AdjResource",
+      "pillar": "P1 experience integration (loop: draft->retrieve/compute->revise)",
+      "role": "main",
+      "incumbent": {
+        "form": "F2-evidence-bound-agent",
+        "pipeline": "evidence-bound-v3",
+        "promoted": "2026-11-12"
+      }
+    },
+    {
+      "task": "AdjData",
+      "pillar": "P1 experience integration (loop: draft->compute->verify->revise)",
+      "role": "main",
+      "incumbent": {
+        "form": "F2-evidence-bound-agent",
+        "pipeline": "evidence-bound-v3",
+        "promoted": "2026-11-12"
+      }
+    },
+    {
+      "task": "AdjSynth",
+      "pillar": "P1 experience integration / execution (loop: compute->check->recompute)",
+      "role": "main",
+      "incumbent": {
+        "form": "F5-synth-execution",
+        "pipeline": "synth-execution"
+      }
+    },
+    {
+      "task": "AdjNER",
+      "pillar": "P1 experience integration",
+      "role": "appendix",
+      "incumbent": {
+        "form": "F2-evidence-bound-agent",
+        "pipeline": null
+      },
+      "note": "Pre-freeze pilot; no registered pipeline. Rerun with evidence-bound-v3 before citing it beyond the appendix."
+    },
+    {
+      "task": "AdjQA",
+      "pillar": "P2 evidence-bound reasoning (loop: draft->retrieve->revise/KEEP_DRAFT->self-check)",
+      "role": "main",
+      "incumbent": {
+        "form": "F1b-qa-grounded-v2",
+        "pipeline": "qa-grounded-revision-v2"
+      }
+    },
+    {
+      "task": "AdjDeepResearch",
+      "pillar": "P2 evidence-bound reasoning (loop: draft->evidence->claim->report, pre-delivery citation check)",
+      "role": "main",
+      "incumbent": {
+        "form": "F3-research-report-agent + fixed_bind pass",
+        "pipeline": "research-report",
+        "promoted": "2026-11-12"
+      }
+    },
+    {
+      "task": "AdjDeepResearch-quality",
+      "pillar": "P2 evidence-bound reasoning",
+      "role": "appendix",
+      "incumbent": {
+        "form": "F4-quality-agent",
+        "pipeline": "research-report-quality"
+      }
+    },
+    {
+      "task": "AdjQA-Fact",
+      "pillar": "motivation",
+      "role": "intro",
+      "incumbent": {
+        "form": "F0-direct",
+        "pipeline": "direct"
+      }
+    },
+    {
+      "task": "AdjCase-mechanism-retro",
+      "pillar": "P3 mechanism-graph DAG (citation gate)",
+      "role": "main",
+      "incumbent": {
+        "form": "F7-mechanism-graph",
+        "pipeline": "mechanism-graph-v2-grounding",
+        "promoted": "2026-11-12"
+      }
+    },
+    {
+      "task": "AdjCase-PLGA",
+      "pillar": "P3 mechanism-graph DAG (controlled case)",
+      "role": "case",
+      "incumbent": {
+        "form": "F6-plga-controlled",
+        "pipeline": "guided-evidence-bound"
+      }
+    },
+    {
+      "task": "AdjDrylab-ADB",
+      "pillar": "P3 mechanism-graph DAG (dry-lab substitute: hypotheses -> in-silico test -> conclusion)",
+      "role": "main if it runs",
+      "incumbent": null,
+      "note": "No incumbent yet."
+    },
+    {
+      "task": "AdjCase-mechanism-decision",
+      "pillar": "P3 mechanism-graph DAG (full feedback loop: rank by value/cost -> wet-lab readout -> belief propagation/pruning -> v+1)",
+      "role": "main",
+      "incumbent": {
+        "form": "F7-mechanism-graph",
+        "pipeline": "mechanism-graph-v3-planning"
+      }
+    }
+  ],
+  "replacement_protocol": [
+    "Same solver, endpoint, judge (gpt-4o-2024-11-20 only) and budget as the incumbent unless that variable is what is being tested.",
+    "A candidate replaces the incumbent only with a real gain over F0-direct on professional questions (held-out paired CI above 0, or a strictly better exact/verifiability metric with content quality not worse).",
+    "Tune only on the development split (AdjQA cohort500, DRB L1-L3 / pilot cases); confirm once on the held-out split and report that number.",
+    "Report the paired difference against F0-direct and against the incumbent, with 95% CI, win/tie/loss and tokens.",
+    "If adj_partner or environment changed, run `scripts/harness_freeze.py verify`, rerun the affected direct+harness arms on the new code, then `snapshot`.",
+    "Target-revealing guidance is allowed only in slots labelled controlled (AdjCase-PLGA) and must be stated as such.",
+    "To swap: move the old incumbent into history, write the candidate as incumbent, append a revisions entry with date, reason and run path."
+  ],
+  "code": {
+    "tree_sha256": "17b858d3c71422348027942c4e8b712fe1c357dcff26add41029c560640c1665",
+    "file_count": 197,
+    "files": {
+      "adj_partner/__init__.py": "2089a6577cd18f1a38da7a7bd85efb27bb389470c96a2ed5cd08134b9a3171ac",
+      "adj_partner/__main__.py": "be6f23c5f40d349b5e3a91c0a26d48344b72b3b2ab9f0a6bfd79597ffb436c28",
+      "adj_partner/analysis/__init__.py": "b6b67309ded5f55ab7fcb3885d6bc19687c45460c8ebc10b43ce442f2041f56c",
+      "adj_partner/analysis/capabilities.py": "c2bd93c639386981d06f0462536e48809c7a5cf26ddd639aaca653acd48079e4",
+      "adj_partner/analysis/history.py": "b405a965d3f27a6a0d61419c4185913daf6022ae88a819c636591231dc044466",
+      "adj_partner/analysis/public_code_capabilities.py": "a6c3f2f799da2de9648f0ce3338f14e6ce95947b1d99e6b1c264891cc1b7040d",
+      "adj_partner/analysis/public_code_checker.py": "30d4c9e111210e2365aef1dd3e93eec55a7c4e24eea003b94ccfe7dcfa8a9ce2",
+      "adj_partner/analysis/sandbox.py": "05172be6bcea7e4e2767c27bd68df741270f2109b2fff784a428b7b4c1c1a9f3",
+      "adj_partner/analysis/worker.py": "89b14e732b7ca26783b5613a24c885369eb72e6aa3af27a7d8f1af9d085cfeb8",
+      "adj_partner/answer_preserving.py": "892f866d1efcf0fbcc9043e5e8a954460a587a74e23a5cbb9cdff658e69b0534",
+      "adj_partner/application.py": "001f437d6ef535b6d84edeab5a8d22a0120725a263914706768d3530399c33b9",
+      "adj_partner/application_activity.py": "0ae75ebff564ac70ea78837b829f730dcc671916a437290d76c7fa1cdc587146",
+      "adj_partner/application_config.py": "cfeffb5dca3a99bfbb4b7f55b436b2eb831aaccd1d8be6387a4cca2bfae24dd8",
+      "adj_partner/cli.py": "7bff87684a9f2e15f58b43ec6bc46e350656a52eee6b134f4d88c864168f3de6",
+      "adj_partner/cli_defaults.py": "12765ffd6add8954f458188e124b28260b24984ec0e8a0821745e7be815081d3",
+      "adj_partner/contracts.py": "817c145da3a39ed23984f195c1b52561fb22833b91788734d0c2107240720aa2",
+      "adj_partner/defaults.py": "cc8b5ec8ae4a5789ab54851b61199f841c0976756fab251689bcd5827e11d42b",
+      "adj_partner/doctor.py": "febf4e4908baac06a2d16dacac2bca42b5b74c5f48b03dcf099472858f396aa0",
+      "adj_partner/draft_first.py": "8a99c2c448d1ce658869fbcfc29223f5871cb7cf3e2497b440147818f3469eec",
+      "adj_partner/entry.py": "63d4716e5f5b94b066e0109c6dbd0fae5d0affb91c36cd16bde7c6c2f7be6cc1",
+      "adj_partner/evaluation.py": "fb3665e2768f3a7b55ff48bf39a718505bc1f70d87f1f0ee3670d22614cf761f",
+      "adj_partner/evaluation_acceptance.py": "7353d2e949d4f6d0e2f95868c5cca84a30b71286acb7e7d2a99c6c33031281e2",
+      "adj_partner/evaluation_scenarios.py": "66ffe359ed8781ba96d15a2be655cfaaac62c55d0c0a03244d89247e53d82188",
+      "adj_partner/evidence_access.py": "c1d325530a6f36baae395265c09593ae6a0b6841e4d55f64bb9a7949617fa544",
+      "adj_partner/evidence_bound_entry.py": "3b528e4f787a73c38b262c677f3c9b4a1e5d1b11b38f22d8db4c485cbd0c8329",
+      "adj_partner/execution/__init__.py": "84b9da6dd905d29bbf9635bc8f2cc637926af81514c94fda1f5d7f444d26aeb3",
+      "adj_partner/execution/context.py": "d78bc3484ef9f7505ffc9b12672167c2f75284cfc7a16aed124c6123321defc1",
+      "adj_partner/execution/manager.py": "079e5efeb065c17e38f27f53029c20eca059d30de0e8e5e3d8c79d6eb52bd936",
+      "adj_partner/execution/worker.py": "6b3c7e69ce9edf7416b58c9d5f21ffd1274a1bfe1d4642695e3336d539302619",
+      "adj_partner/experiment_feedback.py": "383fa1064733970fef603c99d1032f72364994f763854ed49083289424168640",
+      "adj_partner/input_binding.py": "73afa5dbb0be25da127e9943925c7622a4e9d1ab1da66a15d4efd605b25de9fc",
+      "adj_partner/library/__init__.py": "604393610cbb73141310c09ecec4121b6d18f6fab2c895b24e53659dc14cb952",
+      "adj_partner/library/__main__.py": "a00805bef2aaeee338a18d7cb1be4cfe4811a3215a42e0c4c69553b486c0257b",
+      "adj_partner/library/enrich.py": "cf4f36fd7c64d0a761d8878d010d02972c30950fecbed6856512a8cfa57c7b2c",
+      "adj_partner/library/store.py": "9d9cb253d4ef82a30647a0552f804e43f2b1a2a2ed1ff13ca35012cc5abeea12",
+      "adj_partner/matrix_access.py": "e2b92cba00c9c8114243a7d2ca6ef142764c51921650753acaf2c3e2efe89403",
+      "adj_partner/models/__init__.py": "f14621419ec1fb27848221a99173a7a393b9d78d6c1990c0f3430f9d583c8c6c",
+      "adj_partner/models/base.py": "e91c84f5779f6e33155d664277edbea92303f918100b372ff6ca252afed6bdfc",
+      "adj_partner/models/codex_app_server.py": "52de9cf44d9152723938443357ed8304eb93af94be4ae1623c30d28e74841fff",
+      "adj_partner/models/configuration.py": "dcf53b81036c66cc0b871abb1cfd970e3d3f44a7b56d19dfc6ef8dd78f047059",
+      "adj_partner/models/openai_compatible.py": "b069c2d98485cb0e28259e30eef3ee9eaa12f428cdca1c025adbb29f541f2070",
+      "adj_partner/models/projection.py": "f74c47dc14fb268d0875c209aefc73e97586c85ee90d8d7c0ba1a4f18d61abcf",
+      "adj_partner/models/requests.py": "a1a39b58c1cc599a656200af8ebcada508b395155026768a16c0f76c7e73f6c0",
+      "adj_partner/models/schema_presence.py": "e1a9f428a53c3134e21d613684c17a0ed8caf7fee797926f4db2fccc771a27e1",
+      "adj_partner/models/schema_refs.py": "9077ffa2194e4182fd1f1f46669640f9338dda4b66afc45a6d63dc88dada7710",
+      "adj_partner/models/transport.py": "f5bb35fb06cca865c4ae1f89216a1e520bd99a6192b23f9847cb9c269c3e6ecc",
+      "adj_partner/molecule_publication.py": "cd6e23feb12dd16cbebfb7e3667688a23c2cf9e585de51bffd3dd30b723e385e",
+      "adj_partner/molecule_reports.py": "83ab2c2a70e8f9e8257d1a28a6f2edca1cfc02e6114b2eb23581befcf1259c58",
+      "adj_partner/native/__init__.py": "378d16349e65c4f463e2cfc2a08a4d562f04ad7b3afceac15fc819a589fdc4f9",
+      "adj_partner/native/bioc.py": "538c50f81201fa07829831a243025cee95e44ce526692a82a3645344a04ca6fc",
+      "adj_partner/native/capabilities.py": "c11a1378bc16347c42b02fb1d9bd5f77a82b54f32f2d0ff3cd5e41bc2d6b5b77",
+      "adj_partner/native/deg_worker.py": "7f71565a488c9a4cf5a4ed2c3f1d4eda23f3a3edb104b01ecb4e084e53ee7034",
+      "adj_partner/native/documents.py": "f08782eb78628ce1de1761431dded8ffc0b100908f7ff0e5a3d2596ca02859a8",
+      "adj_partner/native/files.py": "b8239a22a8674a37d58922e5278c4889e7faa7d42a51d983bc45a65dab5af206",
+      "adj_partner/native/fulltext.py": "d90e6beb7810ccd0dd19e3b9c2d59c273d6f4a9ddb7c613cf040b7e0bdd571f6",
+      "adj_partner/native/gateway.py": "cf94d771418f0b39eee3bc61d09d78d5b535441eba39470454fecbe65ec78790",
+      "adj_partner/native/grounding.py": "acd4436504926e45c5464ca7990a4f0963de3224e377cf0246baa94a9706dd5c",
+      "adj_partner/native/jats.py": "4885e2a73ff798797bd7bdbff829c7ffd51075f58ff3c58d20398a5639ffb1ab",
+      "adj_partner/native/literature.py": "3d9344affe5329c82ef9ead41541d1b1f7ec524aa62c457fb95f3d726fa24144",
+      "adj_partner/native/literature_search.py": "be70edac78c51212b13399f969f21511d37229a5f7eec213c2dc117452e9a581",
+      "adj_partner/native/ncbi.py": "e537a94761331f1f38441a607844bdc6716ae8c19380facff1a32a25f869ea18",
+      "adj_partner/native/pdf_enhanced.py": "fb3757d8f26505d09944212143d1936e6c896ec40b011924306dca9f0b633700",
+      "adj_partner/native/pmc_cloud.py": "db2bf9dd89ee8204675de4a5883dc0b231545af1d4c39b994d48a32fa60f2a5a",
+      "adj_partner/native/protein.py": "090dfbd7a12762312d953072abb610e2ad0c09d39e05def22a0ef09f0b0d283a",
+      "adj_partner/native/safe_files.py": "fb72b32567df95eb683c1da52ca0903dbb66b0509e42a5c7c5b48ed66ef55ed1",
+      "adj_partner/native/scholarly.py": "8d0a42b010a5c4a48b5b6c886d2e3b899a89f19a9b8356fe2ebc5db74441d463",
+      "adj_partner/native/scientific_resources.py": "a8a90140a66945197c7b1f29aae6f0742c259ecdfa555b4df6e686ead55315a4",
+      "adj_partner/native/sequence_inventory.py": "7488a9be9d592915eac334991459a34563db86b4b9d3b940f3ba6c86e63ea0c8",
+      "adj_partner/native/sequence_query.py": "7a8539b24a02cadc1274523304246ad08ba21b88c65bd1a1173f27b7de292898",
+      "adj_partner/native/web_search.py": "2cc778f91b56d6aec36c77d7d54f044bbf17c7c864423a9555d33426b7438a47",
+      "adj_partner/native/workbooks.py": "98b32cedfa60a0a9452127849125ca908112468ffac9c15404facb9cb2264141",
+      "adj_partner/native/workers.py": "cafac4a9d47d6297bfe9d56a94e88b38bae5f639a856aac3ed760fb926e70636",
+      "adj_partner/open_research_case.py": "9401d65e4e5ba1e1133ed6532aa72a92705ea0c4cdbce4edf8662de2f876df71",
+      "adj_partner/orchestration/__init__.py": "c9435933a94a50844409e38ca9c98d5098190b13f1d8fb6899fadd7d90837b1e",
+      "adj_partner/orchestration/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "adj_partner/orchestration/campaign.py": "25ec4ff6089295782ffec8d2feb02f77271bbfddc3365a2e8e88afc9d3dead9a",
+      "adj_partner/orchestration/cli.py": "bf3a1349c4720a12228ab1c9a7320661f93e18cbf0d2b506f457e56935ec04cd",
+      "adj_partner/orchestration/contracts.py": "80c262d45c7ab10afb62620133dc1c69b353b35aa30fac2b509ad659fb6d7a46",
+      "adj_partner/orchestration/controller.py": "734344553a990595341d1d3cadb06a7a03390a0e101f07c4ee5fc1af36f767d0",
+      "adj_partner/orchestration/exports.py": "e0b3316c5562a15de6276900762acd79299abde0f74129f2ffa65ab4b68c8027",
+      "adj_partner/orchestration/feedback.py": "e5829d3f8235186f9c9996a671752645952bf72ac77728514d5f2a370df72823",
+      "adj_partner/orchestration/graph_grounding_runtime.py": "2f59ff9c2c8276e3feba5319c1b71f90f9df180f95cbf50aff72f00935e169b3",
+      "adj_partner/orchestration/identity.py": "7120bd5974cfaa6835b01aff3d90982fbcb47f6ad615861c85cfdecfc8330561",
+      "adj_partner/orchestration/qa_baseline_patch_runtime.py": "5f4c6eab2c3a820b236f62a8ef7756cbd393cdd4b584f57048f36a7ef85706a2",
+      "adj_partner/orchestration/qa_grounded_runtime.py": "a562baad21e273cffeabd81ba7a1bd7a002f122b033e9d5bebe8b734542e19f9",
+      "adj_partner/orchestration/qa_grounded_v2_runtime.py": "037c716c6267349788ff39ef700faa9d3e829e4fe0463411b606b873795ec514",
+      "adj_partner/orchestration/registry.py": "4715bcea647a1172a7c400b2663680b16b6ae5b48264fcefd4400fb4587ec109",
+      "adj_partner/orchestration/repository.py": "7c0505e0d9dd6f5091c3d5464317aa2b07c41e5dcd105936c8b6d221691e63f4",
+      "adj_partner/orchestration/resource_handoff.py": "36805e0c586d2417b3997d5c17cbd7370b5770f50147f03745525befc966dc5d",
+      "adj_partner/pipelines/__init__.py": "c43ee897918a272e64d2b792e5c46e1bd298608abc99d02c7c09fd119f7b4678",
+      "adj_partner/pipelines/citation_binding.py": "41cf910b3a9d06fa800422aeb9a583f5c1619e1958027fb6f5d995b1d31447f1",
+      "adj_partner/pipelines/citations.py": "6896ccb49de20b26e5c21ca33c8999957f76d2b3974bd6a4080d9a96d1cef7ed",
+      "adj_partner/pipelines/direct.py": "f56cfe3919e2e4d7f89642e43133f7e435d16f60fca995f4c6232f2a133561ee",
+      "adj_partner/pipelines/evidence_bound.py": "08d170bc4083f9c64d33ebcbbf4b1febd4dd3903622ba8f958bc8d42aa44f9b2",
+      "adj_partner/pipelines/guided.py": "ed305eb5e74a48fe88e6df7e2cfc28e3cc593501804a79fd9168381c84db1205",
+      "adj_partner/pipelines/library_search.py": "c4ddac564a60247dd9de97c1c5976b8754391c5607425a60d976b159a8d70c5c",
+      "adj_partner/pipelines/mechanism.py": "cc2c6566ad8686a9d1179e42a49ae292cb24197617a67fc737b63f1fff0bd2f6",
+      "adj_partner/pipelines/research_report.py": "729477b9afdf1df5b454d1dd32c9d19e52b5f8a7fef9409a186cffcb064c069d",
+      "adj_partner/pipelines/sessions.py": "9b2c6213e3ce994f1a86d497e05fa15ad9e2f310060d39b6e841fac4168d0266",
+      "adj_partner/pipelines/synth.py": "1192d6fba24e0694f7bb866ae963b222b839a1f68610c3d0f130103178220892",
+      "adj_partner/profiles.py": "4de9302eefa94d44dfe64b6b9977c7779c9f1bf7eae946b3d1a71459cb792651",
+      "adj_partner/public_reference_feedback.py": "b1d80aa184fc028d358ec55fa0c6c45553b8de6919cbd5002aa72102cd5e7722",
+      "adj_partner/quality_entry.py": "5763b55cc8b3519972a5bb544e4b181ca5e63184219f32412c683289dbb4d5af",
+      "adj_partner/research/__init__.py": "89c779fffff557c411d41fcda6b903b14e231ea5e18cb5c2a3b65bf346c8d8d0",
+      "adj_partner/research/acceptance.py": "b1dbe071ba0d8d8ac8e9aa6d1fc3c965648dd58808be5cc8a41b28ff9977a599",
+      "adj_partner/research/assessments.py": "de21a6e97a0b2d9a09e8762cbc91a4a42c95522d934b9ce985ef23b453d1b8a6",
+      "adj_partner/research/checkpoints.py": "a2db27b704a563f587249b0c504f56d09aa87b6494e4459e085a7bf06c58c690",
+      "adj_partner/research/context_index.py": "e6a27d6f676539702e75a3d13295b52f66c0ff019512eccb7c7974fcadfa9511",
+      "adj_partner/research/coverage.py": "963389d7d4c88bce043378802297973e70679ba5b76afce243d783511e9bb9b4",
+      "adj_partner/research/critic.py": "724bc57da8194f85ef28dc754158b2b2b6ca1cfefd410c29a6f7cd599355ed38",
+      "adj_partner/research/design.py": "a3c7ad39a6ab845474d08999b2090d050c678b648848c988ac765ca18a95dcb4",
+      "adj_partner/research/design_records.py": "beff7e736122698963058f81f289b060d214440c849579ed7db01073e46b3ab5",
+      "adj_partner/research/discovery_bundle.py": "a9e402bfdb636a24f47abf323ba088ab90ba0008876bf70297c23844e0086839",
+      "adj_partner/research/experiments.py": "25dd195a02815a68e81e2e2d60da33fe8c6f10608a5add2d604f2619101a3c49",
+      "adj_partner/research/graph_seed.py": "42faf9faaa5c0c09442ed86c20fc0a205e8bfa537fb943aff40bab11a8d77f28",
+      "adj_partner/research/ledger.py": "1c2be8269e2bb51d6f8bdc27b33ad2d5c19965017efaef397203f29313afb9c4",
+      "adj_partner/research/mechanism_graph.py": "a738f335303881e3811379ceac59c862d9c6d2211cd35efa013eb45aee66f10e",
+      "adj_partner/research/molecule_inputs.py": "ecf24adc06a485500053487284cc0b979a4a47175af9f6e3793cbf4c0827ab7f",
+      "adj_partner/research/molecule_protocol.py": "16490678193881b20459aea8c9cfd356e1b0e16c1f2e1bb1f5122e9853f54b18",
+      "adj_partner/research/molecule_reports.py": "e3e2858e9a0a662f0dc428d7d4c2660b621f0d82abfde9b4f3fb81f2b2b107a3",
+      "adj_partner/research/qa_review_context.py": "a64006e80aa5fbdd34afed35decbf82be66e3ec47f2e247633fe38e4f4bd5919",
+      "adj_partner/research/records.py": "6bf78e465f87ec1574a113ced055fe8986ab4b10be1fb3b6bc19cb138c46ec9c",
+      "adj_partner/research/rendering.py": "19cd4597196eecc88d6c79a4eb8dbe3bb1ff690a2cdf61cb5db426cff73ff99d",
+      "adj_partner/research/rendering_review.py": "9f4b77623851187646ee5a30c9e87ebc46410e62647dda43bf1ab34851f8c81d",
+      "adj_partner/research/reports.py": "c706ffc4f5785dbdc3365bd0e659ec4bebc353347baf0343db590df454f0cff3",
+      "adj_partner/research/staged_design.py": "0e9204699e0c237794d6184fa719106388f2fee90682aa1f23686d6a3453085f",
+      "adj_partner/research/tools.py": "0877188f92d5aa48bf571b9a3aadfbb8aff32420ad0e8dcc08c4896a618e2b9c",
+      "adj_partner/research/validation.py": "3307a91647c9f1aa705158118e0d40bc2b36c7001488698e5820a0e7fe328d65",
+      "adj_partner/research/views.py": "f3924b8acd29b4ba1f14a2277d80d4c2792b1f416a73e5ba521ddc4d6c49aa50",
+      "adj_partner/research_context.py": "e00296c89a4eca54f2e3e713d5d4ea2e85e59c83697a754d651a4f4f9576b4d1",
+      "adj_partner/research_entry.py": "470efcf235197a8f389fbefb1d41588930510a8383510996da8e21d769a06be9",
+      "adj_partner/research_finalize.py": "243a9238ac3f0a4e4d95cee60bbd7ea168108754ab9b285fd53df00cb68497ba",
+      "adj_partner/resource_entry_cards.py": "3964704bf09d8802b5f73a360c18886264852e8444fe7ccb3c6cb29802e6a244",
+      "adj_partner/resources/__init__.py": "13fec08ed40205ed660168b93e275d03008076338dae03e4110c2ea4a18bfbbd",
+      "adj_partner/resources/build.py": "ed75be4e90387dc77f143cfb6c3b9786f3389c11b6cad04fa63f232bcee1f4a9",
+      "adj_partner/resources/citations.py": "88137909cb7bc05a055e04785a6b6dcad1bf0621d1ce38cfa2922f21c51535c7",
+      "adj_partner/resources/expansion.py": "e3d07550e18beabee0f5a069f79300770b6088ccd5b7ac92c96b860afa78cc76",
+      "adj_partner/resources/field_packets.py": "6600b6af64b33de44ee67be9643a7eb37d8d2ee83794345b17a9127856ef3389",
+      "adj_partner/resources/pack.py": "87676425e6cc9729802adcaaca19f143dc5287e5b1d37968766b10e677e05f93",
+      "adj_partner/resources/skills.py": "50fd684cf48a584e5443ce33a383db9da70f36a6126ff4765a24d5cd1a9bd64d",
+      "adj_partner/resources/support.py": "103d74f8f0530986accb96b8c367028db73059791a4c28843321acce12fbb4cb",
+      "adj_partner/resources/tabular.py": "07aa4e5700b53a066234a7d49a37887b7a7736e659f436652b1544b3fe8e1e8b",
+      "adj_partner/resources/tools.py": "47cb0f5d6e5d8b2d48c8f9e7648c514969c5eb8092844fc3ad734ed22f61ebb4",
+      "adj_partner/resources/usage.py": "4efd0845ad4ae3923d4591b01ddbc8e408590bdb03e75501d2bdbca9587e882a",
+      "adj_partner/resources/usage_tools.py": "02fd4005e1c50e49f78ab3724d46b3d0843229c9395ce2bcafba801e65fc56de",
+      "adj_partner/resources/vaxjo.py": "b07f61f0220131190daf5e3753eff9ff1c69f0707ebd199d291309eb28a7baa1",
+      "adj_partner/runtime/__init__.py": "be21972f3260bec82adf5ef413c22648e68f905d9260dcd875257f8bdca8bdda",
+      "adj_partner/runtime/context.py": "c78e78c27d2921207afbbdb58bbd7afd359792830df373aa13a4821d84f74670",
+      "adj_partner/runtime/engine.py": "ef90c07a1f2ae2fadfbb2aeb33f1bc30d9babf293f8cc5b8d877e1f0a7207ec9",
+      "adj_partner/runtime/execution_delivery.py": "bbd25afb1daf8d08aeca1745be692b7393f304c271feafd1f0b82075c9018471",
+      "adj_partner/runtime/execution_witness.py": "894e612104e5c649dfe9328ef844161fdad0b1c2ae3744258e652d019c3d75de",
+      "adj_partner/runtime/journal.py": "3df6a8d2362c1a3f6b64a3e96d503e3cd8e2668147f888c742f40828089d9d7f",
+      "adj_partner/runtime/model_invocations.py": "6e51112895b2ec264246d23c0081af5ecce96e28762d79863e5a5ca1d95dd2ec",
+      "adj_partner/runtime/public_code_validation.py": "e68384160d2809714c126c1555ca24525992519ca5e13a35711ee84ca075b60f",
+      "adj_partner/runtime/reference_feedback.py": "620b1fb33162965001c58b46b09a65a8eb7fb059c68f6fd4bc39aaadc6e986c2",
+      "adj_partner/runtime/tools.py": "040ea54659bbeb3185747f6068869d6233343f8b23880f66822454467c3e1673",
+      "adj_partner/storage.py": "98ee09eb4905d45e127648754ab62c98139949ce11f003254b46039c47aaa1d3",
+      "adj_partner/task_modes/__init__.py": "af4e166e54b81c1a2ce71992a688f49dba22d1243132e9a6bd472855455e2b1e",
+      "adj_partner/task_modes/design.py": "66ddf9343be4d704d6c6890964e7e0a0a5f6a2bd5adeabd0fd7ecea64526b817",
+      "adj_partner/task_modes/discovery_design.py": "9509f0818a8121ee40e974a0afcc5b3a6dc2446ccde9f314fbf3b2e24254d2c5",
+      "adj_partner/task_modes/graph_grounding.py": "cfe3067e32880f4338371cc6be055aeee9837c5d8a93f54b0fddaabc6d59fdc0",
+      "adj_partner/task_modes/qa.py": "212d709c9e6c46ad73c33f21915c05ee925eff3815ebf762273c02f412996d60",
+      "adj_partner/task_modes/qa_claim_patch.py": "1682145fcfeaffc367fae068bcc80adda959272f5cb9955c53a5b6c72a51624d",
+      "adj_partner/task_modes/qa_grounded.py": "4bc1336cbcf40f7e000c68d0e865f3222f6e0d508005e6db2036ecdfebd34773",
+      "adj_partner/task_modes/qa_patch_gate.py": "d639a18a0c46a041057a958110bedd1f45e072be69e78c654c44a83e8d9c22b8",
+      "adj_partner/task_modes/qa_question_first.py": "b4e51e71fd7cddc600ea1decc63ac2ac528d9bb73ccad6354648d406bd6b1a1d",
+      "adj_partner/tools/__init__.py": "a6835b00b0327d723437f4eb45aca2284208936e463a1b22fe5215816aca514b",
+      "adj_partner/tools/catalog.py": "869fe989d84a1da91f96eef8ae3e6d39ba59ff0bc9858da8ac37d0d86f5b0815",
+      "adj_partner/tools/executor.py": "5e91aacf226ff318fb253f5263afc0ccd3419f3010a54bfc608169ce5cac04b2",
+      "adj_partner/tools/health.py": "fc52de1182b53d6c2e185fa9b989efa2c3ce90a724afacf790653d9e284ac4da",
+      "adj_partner/tools/management.py": "cfdaa109a265cb4947aaf1806c2cf5a2d79397fff13288cae670c961e41cee73",
+      "adj_partner/tools/mcp.py": "43746121522a32036ef1140982ae0e908c317497d9348e16ce9a384ded3419ad",
+      "adj_partner/tools/policy.py": "d539966fb3690dca04db9c627261ee67a3b9a7932e35005db7df55061eaf5dba",
+      "adj_partner/trace_dashboard.py": "67c3111e0a26f3a3e18a916989d7b7cc65368f20bdf5dd8a2d47b7119a3d16bc",
+      "adj_partner/trace_export.py": "a99d1ca835fe6a75c350fadab418a3e27bc4ae80f5400ef03726879abdfca4ab",
+      "adj_partner/tui.py": "abcc2153e6c3748a93260c285872e198a673778c6c26a7f3138122929f16df5b",
+      "adj_partner/web_access.py": "0a395a34fb66911c403f035b9c8c36d78b8f7a06476aeac6c9b2cea98425a0eb",
+      "adj_partner/workflows.py": "e5de5adfe1bae356a3a044dace6a39fa035ec82463d682f39fcf46a0d152622e",
+      "environment/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "environment/knowhow_access.py": "83b3b0c4c31e21d7f45af2b665a3ef225db96bf7ac20249ce991f0a801def397",
+      "environment/registry.py": "f80f7bb636a5a706521fa0fc53913c28127efb86bfb1fbea30f4c2f978ddd0a9",
+      "environment/tools/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "environment/tools/analysis/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "environment/tools/analysis/adjuvant_scoring.py": "4717fbd223e57574b76170a4184d42393879983d7629a1ac733270b7d4457c30",
+      "environment/tools/analysis/deg_bio.py": "940fee55ea5be5f776a699b9dcdbdb0bbc584dc02e69d052c6efe957ab85d7b0",
+      "environment/tools/analysis/deg_validation.py": "a473214837854206b7e9a16d55875078baa0e1cb4d03d9d752806a73b7d85faa",
+      "environment/tools/analysis/tools_register.py": "53b7541af463bffdd6bbea2da34f03474cb7be7463c348899fe0f3fbee751344",
+      "environment/tools/data/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "environment/tools/data/corpus_search.py": "436a78fd667669325a2747867b48989e7afe50d2774e366c6384bf14454019bd",
+      "environment/tools/data/deg_loader.py": "1ca74630bc2cbd2883c119f9ffaae9106a66b777792457b1520c1785e0f43d8d",
+      "environment/tools/data/otg_loader.py": "7a3ecdcc7d2b0a01075469f252875293571e8439ab1291860a7e84a6f78d6186",
+      "environment/tools/exec/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "environment/tools/exec/code_runner.py": "4c1484473575253761088f12ae6b47ea6861ca7c8f0f54a86475ba80bdc8e7be",
+      "environment/tools/retrieval/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "environment/tools/retrieval/biodb.py": "d5ea9f6ed091c6d893291800f8c210855804d38ce71782e31dbf71a628082e88",
+      "environment/tools/retrieval/literature.py": "e50c30e1617764080bcc8dff73c1666846e4c8963d066911dc5d22ee9911dc02",
+      "environment/tools/retrieval/web_search.py": "11843e8a5d649f433191215813253f7fcf840dfbbbf6c9dfffa1c5abe970ec2b"
+    }
+  },
+  "host_files": {
+    "roots": [
+      "config/skills",
+      "config/research-resource-index.json",
+      "config/llm.yaml",
+      "config/settings.yaml",
+      "config/sources.yaml"
+    ],
+    "files": {
+      "config/skills/adjuvant-assay-evidence/SKILL.md": "dde22e85404e0ea72e6fee36d7ae7c3da36f62b3bda34814ee6c91f10f0381d9",
+      "config/skills/adjuvant-clinical-evidence/SKILL.md": "793515beaf485d201db4ca4ed8486e4e41718b769d3663837e2124ed11757de2",
+      "config/skills/adjuvant-design/SKILL.md": "8261eeef6781897a65a4c72b9326b8cb18594ec7b10ad846d6196696666b2b45",
+      "config/skills/adjuvant-design/acceptance.json": "844808d60fceb04a07708085f13c425a4bb61f14a8c975168e965d232f13ab6d",
+      "config/skills/adjuvant-design/critic-workflow.md": "4a21f3f3e5e9e5a3aad71eda5426eae7b28671a607291bd77b6d10cb3d10a195",
+      "config/skills/adjuvant-design/references/standards.md": "ae44fe6fb256507adca7fa5de9516fc9d1183cd6496b92e3a7cc3f3194455290",
+      "config/skills/adjuvant-expression-evidence/SKILL.md": "133898a8e6f47c5268c71c454cd623118bb00c4f546cd05ca2f61c8d5f8faa68",
+      "config/skills/adjuvant-mechanism-evidence/SKILL.md": "c1587066808b998a536df3f5f93b7147c6b2497c0f530135b4975abd98021257",
+      "config/skills/adjuvant-ontology-evidence/SKILL.md": "28b0ccc8c77aee9cad6ecdd3848fe0a287041eff74e166cacce708194b36b54b",
+      "config/skills/adjuvant-paper-evidence/SKILL.md": "aabd21a0dccb05dd0e303941af1898f826e7b9fb4224f9733611e51a42e88cba",
+      "config/skills/adjuvant-qa-answer/SKILL.md": "5630ccb1b414657f3b23ab1ffb1bd598e1e1528faf7fff30d77c9c72077b2a4c",
+      "config/skills/adjuvant-qa-claim-patch/SKILL.md": "8f78679a5afb2396a2e582d024a81584581ad218c45c4a7c8b7b5e42d8cde3a2",
+      "config/skills/adjuvant-qa-patch-gate/SKILL.md": "648c2013222b94786872148acf3f5330afe1a623b76afe08a45c5ae74d9fb57e",
+      "config/skills/adjuvant-table-evidence/SKILL.md": "4d412566cbce251602e077884dd9640cdcba5794a045adc168661ea6dd007490",
+      "config/skills/computational-delivery/SKILL.md": "b9a5b74df9e814cfe2c17540fbe498a8a58f23534cdf417547f218b015dc010d",
+      "config/skills/research-design/SKILL.md": "ca9d970a032bf7148086e4fdbf1d30abbd19c1fc78fa76fa855aa4d98d3defc1",
+      "config/skills/research-evidence/SKILL.md": "69177d869cacdd2ac7d439d605b2f8f0bbdd0ef660e469be0d92e3cfbddd1b34",
+      "config/skills/research-molecules/SKILL.md": "4aaf315985db29488bf01a0b79751b16ba7547f96b08c117cf8350dd4fed1eac",
+      "config/skills/research-plan/SKILL.md": "ef093d2c1a3d92deb9ef8543a57be400bb7ca9c43387e6ce90ae654f56d71d54",
+      "config/skills/research-synthesis/SKILL.md": "fa82dfac237d27882dc73118919d1882ab71fc274d9133a076ad49e139040cd1",
+      "config/research-resource-index.json": "87b0207b5d69bdd99cff97e4370af7d08c862254d83c7b17f0b07c46997cd0ec",
+      "config/llm.yaml": "309725230967973e5d4d0449222c9530bbfec5200a076c45c655e1fe974e4846",
+      "config/settings.yaml": "c041589bb743ada7a33e88abe6e80b63663abe1e60088a7137daa37c263d97f2",
+      "config/sources.yaml": "f3fed4298638e89acc5a5a2f6083480067f563b4a59519f8356593732306ecaf"
+    },
+    "held_back": [
+      "config/research-resource-index.json",
+      "config/skills/adjuvant-assay-evidence/SKILL.md",
+      "config/skills/adjuvant-clinical-evidence/SKILL.md",
+      "config/skills/adjuvant-expression-evidence/SKILL.md",
+      "config/skills/adjuvant-mechanism-evidence/SKILL.md",
+      "config/skills/adjuvant-ontology-evidence/SKILL.md",
+      "config/skills/adjuvant-paper-evidence/SKILL.md",
+      "config/skills/adjuvant-table-evidence/SKILL.md"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+# LLM config. Secrets come from environment variables (see .env.example).
+main:
+  api_key_env: ADJ_LLM_API_KEY
+  base_url_env: ADJ_LLM_BASE_URL
+  model_env: ADJ_LLM_MODEL
+  default_base_url: null
+  default_model: null
+  max_completion_tokens: 4096   # gpt-5 is a reasoning model; keep budget high
+  timeout: 120
+  max_retries: 3
+
+reviewer:
+  # Falls back to main LLM if these are unset (with an opposing-role prompt).
+  api_key_env: ADJ_REVIEWER_API_KEY
+  base_url_env: ADJ_REVIEWER_BASE_URL
+  model_env: ADJ_REVIEWER_MODEL
+  max_completion_tokens: 4096
+  timeout: 120
+  max_retries: 3

@@ -1,0 +1,26 @@
+#!/bin/sh
+# Run a command with the project's private key file loaded into its environment.
+# Usage: scripts/with-env <command> [args...]   (file: $ADJ_ENV_FILE or <root>/.einwang_env)
+# Variables already set in the shell win; values are never printed.
+set -eu
+adj_launcher_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+adj_project_root=$(CDPATH= cd -- "$adj_launcher_dir/.." && pwd)
+adj_python=${ADJ_PARTNER_PYTHON:-"$adj_project_root/.venv/bin/python"}
+if [ "$#" -eq 0 ]; then
+    printf '%s\n' 'usage: scripts/with-env <command> [args...]' >&2
+    exit 2
+fi
+exec "$adj_python" -I -c '
+import os, sys
+sys.path.insert(0, sys.argv.pop(1))
+from dotenv import dotenv_values
+from adj_partner.application_config import host_env_file
+selected = host_env_file()
+if selected is None or not selected.is_file():
+    sys.exit("No key file: create .einwang_env in the project root or set ADJ_ENV_FILE"
+             + (f" (not found: {selected})" if selected else ""))
+for name, value in dotenv_values(selected, interpolate=False).items():
+    if value is not None and name not in os.environ:
+        os.environ[name] = value
+os.execvp(sys.argv[1], sys.argv[1:])
+' "$adj_project_root" "$@"
